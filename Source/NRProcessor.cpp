@@ -8,7 +8,12 @@
 #include "NRProcessor.h"
 #include <d3dcompiler.h>
 #include <cstdio>
+#include <cstdarg>
 #include <vector>
+
+#ifndef NVSDK_CONV
+#define NVSDK_CONV __cdecl
+#endif
 
 // ---------------------------------------------------------------------------
 // inline NGX interface (mirrors NVIDIA's layout, no SDK headers needed)
@@ -252,7 +257,7 @@ bool CNRProcessor::SetupCompute()
     return true;
 }
 
-static bool MakeTex12(ID3D12Device* dev, UINT w, UINT h, DXGI_FORMAT fmt, D3D12_RESOURCE_STATE state,
+static bool MakeTex12(ID3D12Device* dev, UINT w, UINT h, DXGI_FORMAT fmt, D3D12_RESOURCE_STATES state,
                       D3D12_RESOURCE_FLAGS flags, ComPtr<ID3D12Resource>& out)
 {
     D3D12_RESOURCE_DESC d = {};
@@ -565,12 +570,8 @@ bool CNRProcessor::Process(ID3D11DeviceContext* pCtx11, ID3D11Texture2D* pFrame)
 
     D3D12_RESOURCE_BARRIER bars[6];
     UINT nb = 0;
-    bars[nb++] = { D3D12_RESOURCE_BARRIER_TYPE_TRANSITION, D3D12_RESOURCE_BARRIER_FLAG_NONE,
-                   { { m_in12.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE } } };
-    bars[nb++] = { D3D12_RESOURCE_BARRIER_TYPE_TRANSITION, D3D12_RESOURCE_BARRIER_FLAG_NONE,
-                   { { m_nrIn.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS } } };
-    bars[nb++] = { D3D12_RESOURCE_BARRIER_TYPE_TRANSITION, D3D12_RESOURCE_BARRIER_FLAG_NONE,
-                   { { m_nrOut.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_UNORDERED_ACCESS } } };
+    bars[nb++] = Trans(m_in12.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    bars[nb++] = Trans(m_nrIn.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
     m_list12->ResourceBarrier(nb, bars);
 
     ID3D12DescriptorHeap* heaps[] = { m_heap.Get() };
@@ -585,8 +586,7 @@ bool CNRProcessor::Process(ID3D11DeviceContext* pCtx11, ID3D11Texture2D* pFrame)
 
     // nrIn -> NPSR (NR reads)
     nb = 0;
-    bars[nb++] = { D3D12_RESOURCE_BARRIER_TYPE_TRANSITION, D3D12_RESOURCE_BARRIER_FLAG_NONE,
-                   { { m_nrIn.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE } } };
+    bars[nb++] = Trans(m_nrIn.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
     m_list12->ResourceBarrier(nb, bars);
 
     m_params->Set("DLSSNR.Reset", m_bFirstFrame ? 1 : 0);
@@ -598,10 +598,8 @@ bool CNRProcessor::Process(ID3D11DeviceContext* pCtx11, ID3D11Texture2D* pFrame)
 
     // nrOut -> NPSR (cs2 reads); out12 -> UAV (cs2 writes)
     nb = 0;
-    bars[nb++] = { D3D12_RESOURCE_BARRIER_TYPE_TRANSITION, D3D12_RESOURCE_BARRIER_FLAG_NONE,
-                   { { m_nrOut.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE } } };
-    bars[nb++] = { D3D12_RESOURCE_BARRIER_TYPE_TRANSITION, D3D12_RESOURCE_BARRIER_FLAG_NONE,
-                   { { m_out12.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS } } };
+    bars[nb++] = Trans(m_nrOut.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    bars[nb++] = Trans(m_out12.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
     m_list12->ResourceBarrier(nb, bars);
 
     m_list12->SetPipelineState(m_pso2.Get());
@@ -611,14 +609,9 @@ bool CNRProcessor::Process(ID3D11DeviceContext* pCtx11, ID3D11Texture2D* pFrame)
 
     // restore shared textures to COMMON for D3D11
     nb = 0;
-    bars[nb++] = { D3D12_RESOURCE_BARRIER_TYPE_TRANSITION, D3D12_RESOURCE_BARRIER_FLAG_NONE,
-                   { { m_in12.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_COMMON } } };
-    bars[nb++] = { D3D12_RESOURCE_BARRIER_TYPE_TRANSITION, D3D12_RESOURCE_BARRIER_FLAG_NONE,
-                   { { m_nrIn.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS } } };
-    bars[nb++] = { D3D12_RESOURCE_BARRIER_TYPE_TRANSITION, D3D12_RESOURCE_BARRIER_FLAG_NONE,
-                   { { m_nrOut.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS } } };
-    bars[nb++] = { D3D12_RESOURCE_BARRIER_TYPE_TRANSITION, D3D12_RESOURCE_BARRIER_FLAG_NONE,
-                   { { m_out12.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COMMON } } };
+    bars[nb++] = Trans(m_in12.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_COMMON);
+    bars[nb++] = Trans(m_nrOut.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    bars[nb++] = Trans(m_out12.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COMMON);
     m_list12->ResourceBarrier(nb, bars);
 
     m_list12->Close();

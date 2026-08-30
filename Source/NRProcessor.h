@@ -12,6 +12,7 @@
 #pragma once
 
 #include <d3d11.h>
+#include <d3d11_4.h>
 #include <d3d12.h>
 #include <dxgi1_5.h>
 #include <wrl/client.h>
@@ -52,6 +53,7 @@ private:
     bool SetupNGX(UINT w, UINT h);
     bool SetupCompute();
     bool EnsureResources(UINT w, UINT h);
+    bool EnsureInterop(ID3D11Device* dev11, ID3D11DeviceContext* pCtx11);
     bool UpdateParams();
 
     // D3D12
