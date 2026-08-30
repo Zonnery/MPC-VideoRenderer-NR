@@ -114,6 +114,15 @@ static void NRLog(const char* fmt, ...)
     va_end(ap);
     OutputDebugStringA(buf);
     OutputDebugStringA("\n");
+    // Also append to a log file next to the host exe, for easy verification.
+    wchar_t exe[MAX_PATH] = L"";
+    GetModuleFileNameW(nullptr, exe, MAX_PATH);
+    wchar_t* s = wcsrchr(exe, L'\\');
+    if (s) *(s + 1) = 0;
+    wchar_t lp[MAX_PATH];
+    swprintf_s(lp, L"%lsnr_log.txt", exe);
+    FILE* f = _wfopen(lp, L"a");
+    if (f) { fputs(buf, f); fputs("\n", f); fclose(f); }
 }
 
 static D3D12_RESOURCE_BARRIER Trans(ID3D12Resource* r, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after)
