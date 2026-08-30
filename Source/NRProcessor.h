@@ -23,12 +23,10 @@
 #include <d3d11_4.h>
 #include <d3d12.h>
 #include <dxgi1_5.h>
-#include <wrl/client.h>
 #include <string>
 
 #pragma pop_macro("NTDDI_VERSION")
 
-using Microsoft::WRL::ComPtr;
 
 struct NVSDK_NGX_Parameter; // defined in NRProcessor.cpp
 struct NVSDK_NGX_Handle;    // defined in NRProcessor.cpp
@@ -67,44 +65,44 @@ private:
     bool UpdateParams();
 
     // D3D12
-    ComPtr<ID3D12Device>             m_dev12;
-    ComPtr<ID3D12CommandQueue>       m_queue12;
-    ComPtr<ID3D12CommandAllocator>   m_alloc12;
-    ComPtr<ID3D12GraphicsCommandList> m_list12;
-    ComPtr<ID3D12Fence>              m_fence12;
+    CComPtr<ID3D12Device>             m_dev12;
+    CComPtr<ID3D12CommandQueue>       m_queue12;
+    CComPtr<ID3D12CommandAllocator>   m_alloc12;
+    CComPtr<ID3D12GraphicsCommandList> m_list12;
+    CComPtr<ID3D12Fence>              m_fence12;
     HANDLE                           m_fenceEvent = nullptr;
     UINT64                           m_fenceValue = 0;
 
     // D3D11 interop (shared fence + context4)
-    ComPtr<ID3D11Fence>              m_fence11;
-    ComPtr<ID3D11DeviceContext4>     m_ctx4;
+    CComPtr<ID3D11Fence>              m_fence11;
+    CComPtr<ID3D11DeviceContext4>     m_ctx4;
 
     // shared textures (D3D11 side owns, D3D12 opens)
-    ComPtr<ID3D11Texture2D>          m_in11;    // B8G8R8A8 (matches backbuffer)
-    ComPtr<ID3D11Texture2D>          m_out11;   // R8G8B8A8 (UAV-capable in D3D12)
-    ComPtr<ID3D12Resource>           m_in12;
-    ComPtr<ID3D12Resource>           m_out12;
+    CComPtr<ID3D11Texture2D>          m_in11;    // B8G8R8A8 (matches backbuffer)
+    CComPtr<ID3D11Texture2D>          m_out11;   // R8G8B8A8 (UAV-capable in D3D12)
+    CComPtr<ID3D12Resource>           m_in12;
+    CComPtr<ID3D12Resource>           m_out12;
 
     // D3D12 NR working set (RGBA16F)
-    ComPtr<ID3D12Resource>           m_nrIn;
-    ComPtr<ID3D12Resource>           m_nrOut;
+    CComPtr<ID3D12Resource>           m_nrIn;
+    CComPtr<ID3D12Resource>           m_nrOut;
 
     // compute pipeline
-    ComPtr<ID3D12RootSignature>      m_rs;
-    ComPtr<ID3D12PipelineState>      m_pso1;   // B8G8R8A8 -> RGBA16F
-    ComPtr<ID3D12PipelineState>      m_pso2;   // RGBA16F -> R8G8B8A8
-    ComPtr<ID3D12DescriptorHeap>     m_heap;
+    CComPtr<ID3D12RootSignature>      m_rs;
+    CComPtr<ID3D12PipelineState>      m_pso1;   // B8G8R8A8 -> RGBA16F
+    CComPtr<ID3D12PipelineState>      m_pso2;   // RGBA16F -> R8G8B8A8
+    CComPtr<ID3D12DescriptorHeap>     m_heap;
 
     // NGX
     NVSDK_NGX_Parameter*             m_params = nullptr;
     NVSDK_NGX_Handle*                m_feature = nullptr;
 
     // D3D11 copy-back (output R8G8B8A8 -> backbuffer B8G8R8A8)
-    ComPtr<ID3D11VertexShader>       m_vsCopy;
-    ComPtr<ID3D11PixelShader>        m_psCopy;
-    ComPtr<ID3D11InputLayout>        m_ilCopy;
-    ComPtr<ID3D11SamplerState>       m_sampler;
-    ComPtr<ID3D11ShaderResourceView> m_srvOut;
+    CComPtr<ID3D11VertexShader>       m_vsCopy;
+    CComPtr<ID3D11PixelShader>        m_psCopy;
+    CComPtr<ID3D11InputLayout>        m_ilCopy;
+    CComPtr<ID3D11SamplerState>       m_sampler;
+    CComPtr<ID3D11ShaderResourceView> m_srvOut;
 
     // config
     bool        m_bEnabled = true;

@@ -155,16 +155,16 @@ void CNRProcessor::Shutdown()
     }
     if (m_fenceEvent) { CloseHandle(m_fenceEvent); m_fenceEvent = nullptr; }
     m_params = nullptr;
-    m_list12.Reset();
-    m_alloc12.Reset();
-    m_queue12.Reset();
-    m_dev12.Reset();
-    m_in11.Reset(); m_out11.Reset();
-    m_in12.Reset(); m_out12.Reset();
-    m_nrIn.Reset(); m_nrOut.Reset();
-    m_rs.Reset(); m_pso1.Reset(); m_pso2.Reset(); m_heap.Reset();
-    m_fence11.Reset(); m_fence12.Reset(); m_ctx4.Reset();
-    m_vsCopy.Reset(); m_psCopy.Reset(); m_ilCopy.Reset(); m_sampler.Reset(); m_srvOut.Reset();
+    m_list12.Release();
+    m_alloc12.Release();
+    m_queue12.Release();
+    m_dev12.Release();
+    m_in11.Release(); m_out11.Release();
+    m_in12.Release(); m_out12.Release();
+    m_nrIn.Release(); m_nrOut.Release();
+    m_rs.Release(); m_pso1.Release(); m_pso2.Release(); m_heap.Release();
+    m_fence11.Release(); m_fence12.Release(); m_ctx4.Release();
+    m_vsCopy.Release(); m_psCopy.Release(); m_ilCopy.Release(); m_sampler.Release(); m_srvOut.Release();
     m_w = m_h = 0;
     m_bInited = false;
 }
@@ -172,27 +172,27 @@ void CNRProcessor::Shutdown()
 bool CNRProcessor::CreateD3D12(ID3D11Device* pDevice11)
 {
     // find the DXGI adapter behind the D3D11 device
-    ComPtr<IDXGIDevice> dxgiDevice;
+    CComPtr<IDXGIDevice> dxgiDevice;
     if (FAILED(pDevice11->QueryInterface(IID_PPV_ARGS(&dxgiDevice)))) { NRLog("[NR] no IDXGIDevice"); return false; }
-    ComPtr<IDXGIAdapter> adapter;
+    CComPtr<IDXGIAdapter> adapter;
     if (FAILED(dxgiDevice->GetAdapter(&adapter))) { NRLog("[NR] GetAdapter failed"); return false; }
 
-    if (FAILED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&m_dev12))))
+    if (FAILED(D3D12CreateDevice(adapter.p, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&m_dev12))))
         { NRLog("[NR] D3D12CreateDevice failed"); return false; }
 
     D3D12_COMMAND_QUEUE_DESC qd = {};
     qd.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
     if (FAILED(m_dev12->CreateCommandQueue(&qd, IID_PPV_ARGS(&m_queue12)))) return false;
     if (FAILED(m_dev12->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_alloc12)))) return false;
-    if (FAILED(m_dev12->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_alloc12.Get(), nullptr, IID_PPV_ARGS(&m_list12)))) return false;
+    if (FAILED(m_dev12->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_alloc12.p, nullptr, IID_PPV_ARGS(&m_list12)))) return false;
     if (FAILED(m_dev12->CreateFence(0, D3D12_FENCE_FLAG_SHARED, IID_PPV_ARGS(&m_fence12)))) return false;
     m_list12->Close();
 
     // share the fence to D3D11
     HANDLE fh = nullptr;
-    if (SUCCEEDED(m_dev12->CreateSharedHandle(m_fence12.Get(), nullptr, GENERIC_ALL, nullptr, &fh)))
+    if (SUCCEEDED(m_dev12->CreateSharedHandle(m_fence12.p, nullptr, GENERIC_ALL, nullptr, &fh)))
     {
-        ComPtr<ID3D11Device5> dev5;
+        CComPtr<ID3D11Device5> dev5;
         if (SUCCEEDED(pDevice11->QueryInterface(IID_PPV_ARGS(&dev5))))
             dev5->OpenSharedFence(fh, IID_PPV_ARGS(&m_fence11));
     }
@@ -221,7 +221,7 @@ bool CNRProcessor::SetupCompute()
     }
     D3D12_ROOT_SIGNATURE_DESC rsd = {};
     rsd.NumParameters = 2; rsd.pParameters = rp;
-    ComPtr<ID3DBlob> sig, err;
+    CComPtr<ID3DBlob> sig, err;
     if (FAILED(D3D12SerializeRootSignature(&rsd, D3D_ROOT_SIGNATURE_VERSION_1, &sig, &err)))
         { NRLog("[NR] root sig serialize failed"); return false; }
     if (FAILED(m_dev12->CreateRootSignature(0, sig->GetBufferPointer(), sig->GetBufferSize(), IID_PPV_ARGS(&m_rs))))
@@ -239,8 +239,8 @@ bool CNRProcessor::SetupCompute()
         "void CSMain(uint3 id : SV_DispatchThreadID) { float4 c = src[id.xy]; dst[id.xy] = float4(c.rgb, 1.0f); }\n";
 
     D3D12_COMPUTE_PIPELINE_STATE_DESC ps = {};
-    ps.pRootSignature = m_rs.Get();
-    ComPtr<ID3DBlob> b1, e1, b2, e2;
+    ps.pRootSignature = m_rs.p;
+    CComPtr<ID3DBlob> b1, e1, b2, e2;
     if (FAILED(D3DCompile(cs1, strlen(cs1), "cs1", nullptr, nullptr, "CSMain", "cs_5_0", 0, 0, &b1, &e1)))
         { NRLog("[NR] cs1 compile: %s", e1 ? (char*)e1->GetBufferPointer() : "?"); return false; }
     if (FAILED(D3DCompile(cs2, strlen(cs2), "cs2", nullptr, nullptr, "CSMain", "cs_5_0", 0, 0, &b2, &e2)))
@@ -258,7 +258,7 @@ bool CNRProcessor::SetupCompute()
 }
 
 static bool MakeTex12(ID3D12Device* dev, UINT w, UINT h, DXGI_FORMAT fmt, D3D12_RESOURCE_STATES state,
-                      D3D12_RESOURCE_FLAGS flags, ComPtr<ID3D12Resource>& out)
+                      D3D12_RESOURCE_FLAGS flags, CComPtr<ID3D12Resource>& out)
 {
     D3D12_RESOURCE_DESC d = {};
     d.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -285,14 +285,14 @@ bool CNRProcessor::EnsureResources(UINT w, UINT h)
     m_w = w; m_h = h;
 
     // NR working textures (RGBA16F)
-    m_nrIn.Reset(); m_nrOut.Reset();
-    if (!MakeTex12(m_dev12.Get(), w, h, DXGI_FORMAT_R16G16B16A16_FLOAT, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
+    m_nrIn.Release(); m_nrOut.Release();
+    if (!MakeTex12(m_dev12.p, w, h, DXGI_FORMAT_R16G16B16A16_FLOAT, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
                    D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, m_nrIn)) return false;
-    if (!MakeTex12(m_dev12.Get(), w, h, DXGI_FORMAT_R16G16B16A16_FLOAT, D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+    if (!MakeTex12(m_dev12.p, w, h, DXGI_FORMAT_R16G16B16A16_FLOAT, D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
                    D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, m_nrOut)) return false;
 
     // interop textures are (re)created lazily in EnsureInterop() on the next Process
-    m_in11.Reset(); m_out11.Reset(); m_in12.Reset(); m_out12.Reset(); m_srvOut.Reset();
+    m_in11.Release(); m_out11.Release(); m_in12.Release(); m_out12.Release(); m_srvOut.Release();
 
     // descriptor views for the NR working textures
     UINT inc = m_dev12->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
@@ -307,10 +307,10 @@ bool CNRProcessor::EnsureResources(UINT w, UINT h)
     // [0] SRV in12 (B8G8R8A8) - filled in EnsureInterop (texture created there)
     // [1] UAV nrIn (RGBA16F)
     uav.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
-    m_dev12->CreateUnorderedAccessView(m_nrIn.Get(), nullptr, &uav, { base.ptr + 1 * inc });
+    m_dev12->CreateUnorderedAccessView(m_nrIn.p, nullptr, &uav, { base.ptr + 1 * inc });
     // [2] SRV nrOut (RGBA16F)
     srv.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
-    m_dev12->CreateShaderResourceView(m_nrOut.Get(), &srv, { base.ptr + 2 * inc });
+    m_dev12->CreateShaderResourceView(m_nrOut.p, &srv, { base.ptr + 2 * inc });
     // [3] UAV out12 (R8G8B8A8) - filled in EnsureInterop
 
     m_bFirstFrame = true;
@@ -321,7 +321,7 @@ bool CNRProcessor::EnsureInterop(ID3D11Device* dev11, ID3D11DeviceContext* pCtx1
 {
     if (m_in11 && m_out11) return true;
 
-    m_in11.Reset(); m_out11.Reset(); m_in12.Reset(); m_out12.Reset(); m_srvOut.Reset();
+    m_in11.Release(); m_out11.Release(); m_in12.Release(); m_out12.Release(); m_srvOut.Release();
 
     D3D11_TEXTURE2D_DESC td = {};
     td.Width = m_w; td.Height = m_h; td.MipLevels = 1; td.ArraySize = 1;
@@ -338,18 +338,18 @@ bool CNRProcessor::EnsureInterop(ID3D11Device* dev11, ID3D11DeviceContext* pCtx1
     td.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
     td.BindFlags = D3D11_BIND_SHADER_RESOURCE;
     if (FAILED(dev11->CreateTexture2D(&td, nullptr, &m_out11))) return false;
-    dev11->CreateShaderResourceView(m_out11.Get(), nullptr, &m_srvOut);
+    dev11->CreateShaderResourceView(m_out11.p, nullptr, &m_srvOut);
 
     // share input -> D3D12
     HANDLE h = nullptr;
-    ComPtr<IDXGIResource1> res1;
+    CComPtr<IDXGIResource1> res1;
     if (SUCCEEDED(m_in11->QueryInterface(IID_PPV_ARGS(&res1))))
         res1->CreateSharedHandle(nullptr, DXGI_SHARED_RESOURCE_READ | DXGI_SHARED_RESOURCE_WRITE, nullptr, &h);
     if (h) { m_dev12->OpenSharedHandle(h, IID_PPV_ARGS(&m_in12)); CloseHandle(h); }
 
     // share output -> D3D12
     h = nullptr;
-    ComPtr<IDXGIResource1> res2;
+    CComPtr<IDXGIResource1> res2;
     if (SUCCEEDED(m_out11->QueryInterface(IID_PPV_ARGS(&res2))))
         res2->CreateSharedHandle(nullptr, DXGI_SHARED_RESOURCE_READ | DXGI_SHARED_RESOURCE_WRITE, nullptr, &h);
     if (h) { m_dev12->OpenSharedHandle(h, IID_PPV_ARGS(&m_out12)); CloseHandle(h); }
@@ -367,9 +367,9 @@ bool CNRProcessor::EnsureInterop(ID3D11Device* dev11, ID3D11DeviceContext* pCtx1
     uav.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
 
     srv.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-    m_dev12->CreateShaderResourceView(m_in12.Get(), &srv, { base.ptr + 0 * inc });
+    m_dev12->CreateShaderResourceView(m_in12.p, &srv, { base.ptr + 0 * inc });
     uav.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    m_dev12->CreateUnorderedAccessView(m_out12.Get(), nullptr, &uav, { base.ptr + 3 * inc });
+    m_dev12->CreateUnorderedAccessView(m_out12.p, nullptr, &uav, { base.ptr + 3 * inc });
 
     // context4 (Signal/Wait) + D3D11 copy-back shader
     if (!m_ctx4)
@@ -381,7 +381,7 @@ bool CNRProcessor::EnsureInterop(ID3D11Device* dev11, ID3D11DeviceContext* pCtx1
     const char* ps =
         "Texture2D tex : register(t0); SamplerState s : register(s0);\n"
         "float4 main(float4 p : SV_Position, float2 uv : TEXCOORD0) : SV_Target { return tex.SampleLevel(s, uv, 0); }\n";
-    ComPtr<ID3DBlob> vb, pb;
+    CComPtr<ID3DBlob> vb, pb;
     if (SUCCEEDED(D3DCompile(vs, strlen(vs), "vs", nullptr, nullptr, "main", "vs_5_0", 0, 0, &vb, nullptr)))
         dev11->CreateVertexShader(vb->GetBufferPointer(), vb->GetBufferSize(), nullptr, &m_vsCopy);
     if (SUCCEEDED(D3DCompile(ps, strlen(ps), "ps", nullptr, nullptr, "main", "ps_5_0", 0, 0, &pb, nullptr)))
@@ -448,7 +448,7 @@ bool CNRProcessor::SetupNGX(UINT w, UINT h)
     for (int ver = 0x13; ver <= 0x20 && !inited; ++ver)
     {
         NVSDK_NGX_Result r = s_initProjectID("53f803cc-a12f-4d69-90d5-19b7599cad19", 0, "0.1",
-                                              data_path, m_dev12.Get(), ver, nullptr);
+                                              data_path, m_dev12.p, ver, nullptr);
         if (r == NGX_SUCCESS) { NRLog("[NR] Init_ProjectID ver=0x%02X ok", ver); inited = 1; }
     }
     if (!inited) { NRLog("[NR] Init_ProjectID failed"); return false; }
@@ -459,7 +459,7 @@ bool CNRProcessor::SetupNGX(UINT w, UINT h)
         NVSDK_NGX_FeatureCommonInfo fci = {};
         fci.PathListInfo = pli;
         fci.LoggingInfo.LoggingLevel = NVSDK_NGX_LOGGING_LEVEL_OFF;
-        NVSDK_NGX_Result r = s_shimInit((void*)s_directInit, APP_ID, data_path, m_dev12.Get(), 0x15, &fci);
+        NVSDK_NGX_Result r = s_shimInit((void*)s_directInit, APP_ID, data_path, m_dev12.p, 0x15, &fci);
         NRLog("[NR] snippet Init_Ext -> 0x%08X", (unsigned)r);
     }
 
@@ -488,9 +488,9 @@ bool CNRProcessor::SetupNGX(UINT w, UINT h)
     m_params->Set("DLSSNR.ScalingRatio", 1.0f);
     m_params->Set("DLSSNR.MVecScaleX", 1.0f);
     m_params->Set("DLSSNR.MVecScaleY", 1.0f);
-    m_params->Set("DLSSNR.Color", m_nrIn.Get());
-    m_params->Set("DLSSNR.Output", m_nrOut.Get());
-    m_params->Set("DLSSNR.Backbuffer", m_nrOut.Get());
+    m_params->Set("DLSSNR.Color", m_nrIn.p);
+    m_params->Set("DLSSNR.Output", m_nrOut.p);
+    m_params->Set("DLSSNR.Backbuffer", m_nrOut.p);
     m_params->Set("DLSSNR.ColorSubrectBaseX", 0);
     m_params->Set("DLSSNR.ColorSubrectBaseY", 0);
     m_params->Set("DLSSNR.ColorSubrectWidth", w);
@@ -502,21 +502,21 @@ bool CNRProcessor::SetupNGX(UINT w, UINT h)
 
     // CreateFeature (via shim if available) - the list must be OPEN here
     m_alloc12->Reset();
-    m_list12->Reset(m_alloc12.Get(), nullptr);
+    m_list12->Reset(m_alloc12.p, nullptr);
     NVSDK_NGX_Result rc;
     if (s_nrCreate && s_shimCreate)
-        rc = s_shimCreate((void*)s_nrCreate, m_list12.Get(), NR_FEATURE_ID, m_params, &m_feature);
+        rc = s_shimCreate((void*)s_nrCreate, m_list12.p, NR_FEATURE_ID, m_params, &m_feature);
     else
-        rc = s_nrCreate(m_list12.Get(), NR_FEATURE_ID, m_params, &m_feature);
+        rc = s_nrCreate(m_list12.p, NR_FEATURE_ID, m_params, &m_feature);
     if (rc != NGX_SUCCESS || !m_feature)
         { NRLog("[NR] CreateFeature(18) -> 0x%08X", (unsigned)rc); m_list12->Close(); return false; }
 
     // commit CreateFeature
     m_list12->Close();
-    ID3D12CommandList* cmds[] = { m_list12.Get() };
+    ID3D12CommandList* cmds[] = { m_list12.p };
     m_queue12->ExecuteCommandLists(1, cmds);
     UINT64 v = ++m_fenceValue;
-    m_queue12->Signal(m_fence12.Get(), v);
+    m_queue12->Signal(m_fence12.p, v);
     m_fence12->SetEventOnCompletion(v, m_fenceEvent);
     WaitForSingleObject(m_fenceEvent, 20000);
 
@@ -550,34 +550,34 @@ bool CNRProcessor::Process(ID3D11DeviceContext* pCtx11, ID3D11Texture2D* pFrame)
     pFrame->GetDesc(&fd);
     if (!EnsureResources(fd.Width, fd.Height)) return false;
 
-    ComPtr<ID3D11Device> dev11;
+    CComPtr<ID3D11Device> dev11;
     pCtx11->GetDevice(&dev11);
-    if (!EnsureInterop(dev11.Get(), pCtx11)) return false;
+    if (!EnsureInterop(dev11.p, pCtx11)) return false;
     if (!SetupNGX(fd.Width, fd.Height)) return false;
     if (m_bDirty) { UpdateParams(); m_bDirty = false; }
 
     // 1. copy the frame into the shared input texture (D3D11)
-    pCtx11->CopyResource(m_in11.Get(), pFrame);
+    pCtx11->CopyResource(m_in11.p, pFrame);
 
     // 2. order: D3D11 -> D3D12
     UINT64 v = m_fenceValue + 1;
-    m_ctx4->Signal(m_fence11.Get(), v);
-    m_queue12->Wait(m_fence12.Get(), v);
+    m_ctx4->Signal(m_fence11.p, v);
+    m_queue12->Wait(m_fence12.p, v);
 
     // 3. NR on the D3D12 side
     m_alloc12->Reset();
-    m_list12->Reset(m_alloc12.Get(), nullptr);
+    m_list12->Reset(m_alloc12.p, nullptr);
 
     D3D12_RESOURCE_BARRIER bars[6];
     UINT nb = 0;
-    bars[nb++] = Trans(m_in12.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-    bars[nb++] = Trans(m_nrIn.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    bars[nb++] = Trans(m_in12.p, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    bars[nb++] = Trans(m_nrIn.p, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
     m_list12->ResourceBarrier(nb, bars);
 
-    ID3D12DescriptorHeap* heaps[] = { m_heap.Get() };
+    ID3D12DescriptorHeap* heaps[] = { m_heap.p };
     m_list12->SetDescriptorHeaps(1, heaps);
-    m_list12->SetPipelineState(m_pso1.Get());
-    m_list12->SetComputeRootSignature(m_rs.Get());
+    m_list12->SetPipelineState(m_pso1.p);
+    m_list12->SetComputeRootSignature(m_rs.p);
     UINT inc = m_dev12->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     D3D12_GPU_DESCRIPTOR_HANDLE h0 = m_heap->GetGPUDescriptorHandleForHeapStart();
     m_list12->SetComputeRootDescriptorTable(0, h0);                        // in12 SRV
@@ -586,41 +586,41 @@ bool CNRProcessor::Process(ID3D11DeviceContext* pCtx11, ID3D11Texture2D* pFrame)
 
     // nrIn -> NPSR (NR reads)
     nb = 0;
-    bars[nb++] = Trans(m_nrIn.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    bars[nb++] = Trans(m_nrIn.p, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
     m_list12->ResourceBarrier(nb, bars);
 
     m_params->Set("DLSSNR.Reset", m_bFirstFrame ? 1 : 0);
     m_bFirstFrame = false;
     if (s_nrEval && s_shimEval)
-        s_shimEval((void*)s_nrEval, m_list12.Get(), m_feature, m_params, nullptr);
+        s_shimEval((void*)s_nrEval, m_list12.p, m_feature, m_params, nullptr);
     else
-        s_nrEval(m_list12.Get(), m_feature, m_params, nullptr);
+        s_nrEval(m_list12.p, m_feature, m_params, nullptr);
 
     // nrOut -> NPSR (cs2 reads); out12 -> UAV (cs2 writes)
     nb = 0;
-    bars[nb++] = Trans(m_nrOut.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-    bars[nb++] = Trans(m_out12.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    bars[nb++] = Trans(m_nrOut.p, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    bars[nb++] = Trans(m_out12.p, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
     m_list12->ResourceBarrier(nb, bars);
 
-    m_list12->SetPipelineState(m_pso2.Get());
+    m_list12->SetPipelineState(m_pso2.p);
     m_list12->SetComputeRootDescriptorTable(0, { h0.ptr + 2 * inc });      // nrOut SRV
     m_list12->SetComputeRootDescriptorTable(1, { h0.ptr + 3 * inc });      // out12 UAV
     m_list12->Dispatch((m_w + 15) / 16, (m_h + 15) / 16, 1);
 
     // restore shared textures to COMMON for D3D11
     nb = 0;
-    bars[nb++] = Trans(m_in12.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_COMMON);
-    bars[nb++] = Trans(m_nrOut.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-    bars[nb++] = Trans(m_out12.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COMMON);
+    bars[nb++] = Trans(m_in12.p, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_COMMON);
+    bars[nb++] = Trans(m_nrOut.p, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    bars[nb++] = Trans(m_out12.p, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COMMON);
     m_list12->ResourceBarrier(nb, bars);
 
     m_list12->Close();
-    ID3D12CommandList* cmds[] = { m_list12.Get() };
+    ID3D12CommandList* cmds[] = { m_list12.p };
     m_queue12->ExecuteCommandLists(1, cmds);
 
     // 4. order: D3D12 -> D3D11
-    m_queue12->Signal(m_fence12.Get(), v + 1);
-    m_ctx4->Wait(m_fence11.Get(), v + 1);
+    m_queue12->Signal(m_fence12.p, v + 1);
+    m_ctx4->Wait(m_fence11.p, v + 1);
     m_fenceValue = v + 1;
 
     // 5. copy the NR output back into the frame (R8G8B8A8 -> backbuffer, hardware handles BGRA)
@@ -634,10 +634,10 @@ bool CNRProcessor::Process(ID3D11DeviceContext* pCtx11, ID3D11Texture2D* pFrame)
             pCtx11->RSSetViewports(1, &vp);
             pCtx11->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
             pCtx11->IASetInputLayout(nullptr);
-            pCtx11->VSSetShader(m_vsCopy.Get(), nullptr, 0);
-            pCtx11->PSSetShader(m_psCopy.Get(), nullptr, 0);
-            pCtx11->PSSetShaderResources(0, 1, m_srvOut.GetAddressOf());
-            pCtx11->PSSetSamplers(0, 1, m_sampler.GetAddressOf());
+            pCtx11->VSSetShader(m_vsCopy.p, nullptr, 0);
+            pCtx11->PSSetShader(m_psCopy.p, nullptr, 0);
+            pCtx11->PSSetShaderResources(0, 1, &m_srvOut);
+            pCtx11->PSSetSamplers(0, 1, &m_sampler);
             pCtx11->Draw(3, 0);
             rtv->Release();
         }
