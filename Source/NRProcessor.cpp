@@ -400,7 +400,20 @@ bool CNRProcessor::SetupNGX(UINT w, UINT h)
 {
     if (m_feature) return true;
 
-    HMODULE ngx = LoadLibraryW(L"_nvngx.dll");
+    // Resolve the NGX DLLs relative to the host module (mpc-be64.exe) so loading
+    // does not depend on the process current directory.
+    wchar_t exe_path[MAX_PATH] = L"";
+    wchar_t exe_dir[MAX_PATH] = L"";
+    GetModuleFileNameW(nullptr, exe_path, MAX_PATH);
+    wcscpy_s(exe_dir, exe_path);
+    wchar_t* slash = wcsrchr(exe_dir, L'\\');
+    if (slash) *(slash + 1) = 0;
+
+    wchar_t path[MAX_PATH];
+
+    HMODULE ngx = nullptr;
+    swprintf_s(path, L"%ls_nvngx.dll", exe_dir);
+    ngx = LoadLibraryW(path);
     if (!ngx)
     {
         WIN32_FIND_DATAW fd;
@@ -409,9 +422,8 @@ bool CNRProcessor::SetupNGX(UINT w, UINT h)
         HANDLE hf = FindFirstFileW(pat, &fd);
         if (hf != INVALID_HANDLE_VALUE)
         {
-            wchar_t full[MAX_PATH];
-            swprintf_s(full, L"C:\\Windows\\System32\\DriverStore\\FileRepository\\%ls", fd.cFileName);
-            ngx = LoadLibraryW(full);
+            swprintf_s(path, L"C:\\Windows\\System32\\DriverStore\\FileRepository\\%ls", fd.cFileName);
+            ngx = LoadLibraryW(path);
             FindClose(hf);
         }
     }
@@ -420,7 +432,8 @@ bool CNRProcessor::SetupNGX(UINT w, UINT h)
     s_initProjectID = (PFN_Init_ProjectID)GetProcAddress(ngx, "NVSDK_NGX_D3D12_Init_ProjectID");
     s_alloc         = (PFN_AllocateParameters)GetProcAddress(ngx, "NVSDK_NGX_D3D12_AllocateParameters");
 
-    HMODULE nr = LoadLibraryW(L"nvngx_dlssnr.dll");
+    swprintf_s(path, L"%lsnvngx_dlssnr.dll", exe_dir);
+    HMODULE nr = LoadLibraryW(path);
     if (nr)
     {
         s_directInit = (PFN_Init_Ext)GetProcAddress(nr, "NVSDK_NGX_D3D12_Init_Ext");
@@ -429,7 +442,8 @@ bool CNRProcessor::SetupNGX(UINT w, UINT h)
         s_nrRelease  = (PFN_D3D12ReleaseFeature)GetProcAddress(nr, "NVSDK_NGX_D3D12_ReleaseFeature");
     }
 
-    HMODULE shim = LoadLibraryW(L"caller\\nvngx.dll");
+    swprintf_s(path, L"%lscaller\\nvngx.dll", exe_dir);
+    HMODULE shim = LoadLibraryW(path);
     if (shim)
     {
         s_shimInit    = (PFN_ShimInit)GetProcAddress(shim, "DLSSNR_CallInit");
@@ -440,8 +454,8 @@ bool CNRProcessor::SetupNGX(UINT w, UINT h)
     if (!s_initProjectID || !s_alloc || !s_nrCreate || !s_nrEval || !s_nrRelease)
         { NRLog("[NR] NGX entry points missing"); return false; }
 
-    wchar_t data_path[MAX_PATH] = L".";
-    GetCurrentDirectoryW(MAX_PATH, data_path);
+    wchar_t data_path[MAX_PATH];
+    wcscpy_s(data_path, exe_dir);
     const unsigned long long APP_ID = 141959980ULL;
 
     int inited = 0;
