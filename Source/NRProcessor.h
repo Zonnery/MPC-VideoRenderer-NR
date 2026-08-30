@@ -11,12 +11,22 @@
 
 #pragma once
 
+// DLSS 5 NR needs D3D11.4 shared fences (Windows 10 1703+). The renderer targets
+// Windows 7 (WINVER/_WIN32_WINNT = 0x0601), so NTDDI_VERSION is too low for
+// d3d11_4.h to declare ID3D11Fence / ID3D11Device5 / ID3D11DeviceContext4.
+// Raise it for these includes only, then restore.
+#pragma push_macro("NTDDI_VERSION")
+#undef NTDDI_VERSION
+#define NTDDI_VERSION 0x0A000007 // NTDDI_WIN10_20H1 (>= RS2)
+
 #include <d3d11.h>
 #include <d3d11_4.h>
 #include <d3d12.h>
 #include <dxgi1_5.h>
 #include <wrl/client.h>
 #include <string>
+
+#pragma pop_macro("NTDDI_VERSION")
 
 using Microsoft::WRL::ComPtr;
 
