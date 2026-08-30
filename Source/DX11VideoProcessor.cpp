@@ -1279,6 +1279,10 @@ HRESULT CDX11VideoProcessor::SetDevice(ID3D11Device *pDevice, ID3D11DeviceContex
 	CComQIPtr<ID3D10Multithread> pMultithread(m_pDeviceContext);
 	pMultithread->SetMultithreadProtected(TRUE);
 
+	// DLSS 5 Neural Rendering post-processor (D3D12 device on the same adapter)
+	m_nrProcessor.Shutdown();
+	m_nrProcessor.Init(m_pDevice);
+
 	CComPtr<IDXGIDevice> pDXGIDevice;
 	hr = m_pDevice->QueryInterface(IID_PPV_ARGS(&pDXGIDevice));
 	if (FAILED(hr)) {
@@ -2738,6 +2742,11 @@ HRESULT CDX11VideoProcessor::Render(int field, const REFERENCE_TIME frameStartTi
 
 	if (!m_renderRect.IsRectEmpty()) {
 		hr = Process(pBackBuffer, m_srcRect, m_videoRect, m_FieldDrawn == 2);
+	}
+
+	// DLSS 5 Neural Rendering (post-process the rendered frame before subtitles/OSD)
+	if (m_nrProcessor.IsEnabled()) {
+		m_nrProcessor.Process(m_pDeviceContext, pBackBuffer);
 	}
 
 	if (!m_pPSHalfOUtoInterlace) {

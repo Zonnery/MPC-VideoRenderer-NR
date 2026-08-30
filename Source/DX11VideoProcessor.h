@@ -32,6 +32,7 @@
 #include "D3DUtil/D3D11Geometry.h"
 #include "VideoProcessor.h"
 #include "SubPic/DX11SubPic.h"
+#include "NRProcessor.h"
 
 #include <atomic>
 
@@ -48,6 +49,7 @@ private:
 	// Direct3D 11
 	CComPtr<ID3D11Device1>        m_pDevice;
 	CComPtr<ID3D11DeviceContext1> m_pDeviceContext;
+	CNRProcessor                 m_nrProcessor; // DLSS 5 Neural Rendering post-processor
 	CComPtr<ID3D11SamplerState>   m_pSamplerPoint;
 	CComPtr<ID3D11SamplerState>   m_pSamplerLinear;
 	CComPtr<ID3D11SamplerState>   m_pSamplerDither;
