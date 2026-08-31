@@ -120,4 +120,7 @@ private:
     int         m_intensity = 2, m_preset = 3, m_tone = 1, m_structure = 1, m_skin = -1, m_mask = 0;
     std::string m_style = "cinematic";
     UINT        m_w = 0, m_h = 0;
+    UINT        m_dominantW = 0, m_dominantH = 0;
+    uint64_t    m_dominantArea = 0;
+    UINT        m_dominantCount = 0;
 };
