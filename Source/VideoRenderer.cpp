@@ -139,7 +139,7 @@ static LRESULT CALLBACK ParentWndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM
 //
 
 CMpcVideoRenderer::CMpcVideoRenderer(LPUNKNOWN pUnk, HRESULT* phr)
-	: CBaseVideoRenderer2(__uuidof(this), L"MPC Video Renderer", pUnk, phr)
+	: CBaseVideoRenderer2(__uuidof(this), L"MPC Video Renderer NR", pUnk, phr)
 {
 	DLog(L"CMpcVideoRenderer::CMpcVideoRenderer()");
 
@@ -1733,7 +1733,7 @@ STDMETHODIMP CMpcVideoRenderer::GetString(LPCSTR field, LPWSTR* value, int* char
 	std::wstring str;
 
 	if (!strcmp(field, "name")) {
-		str = L"MPC Video Renderer";
+		str = L"MPC Video Renderer NR";
 	}
 	else if (!strcmp(field, "version")) {
 		str = _CRT_WIDE(VERSION_STR);

@@ -559,7 +559,19 @@ HRESULT CDX11VideoProcessor::Init(const HWND hwnd, const bool displayHdrChanged,
 	}
 
 	IDXGIAdapter* pDXGIAdapter = nullptr;
-	const UINT currentAdapter = GetAdapter(hwnd, m_pDXGIFactory1, &pDXGIAdapter);
+	// Force the RTX 5090 adapter (NR runs on it; the 5070 Ti is reserved for other work).
+	UINT currentAdapter = 0;
+	for (UINT a = 0; m_pDXGIFactory1->EnumAdapters(a, &pDXGIAdapter) != DXGI_ERROR_NOT_FOUND; ++a) {
+		DXGI_ADAPTER_DESC d{};
+		if (SUCCEEDED(pDXGIAdapter->GetDesc(&d)) && wcsstr(d.Description, L"5090")) {
+			currentAdapter = a;
+			break;
+		}
+		SAFE_RELEASE(pDXGIAdapter);
+	}
+	if (!pDXGIAdapter) {
+		currentAdapter = GetAdapter(hwnd, m_pDXGIFactory1, &pDXGIAdapter);
+	}
 	CheckPointer(pDXGIAdapter, E_FAIL);
 	if (m_nCurrentAdapter == currentAdapter) {
 		SAFE_RELEASE(pDXGIAdapter);
@@ -1280,8 +1292,9 @@ HRESULT CDX11VideoProcessor::SetDevice(ID3D11Device *pDevice, ID3D11DeviceContex
 	pMultithread->SetMultithreadProtected(TRUE);
 
 	// DLSS 5 Neural Rendering post-processor (D3D12 device on the same adapter)
-	m_nrProcessor.Shutdown();
-	m_nrProcessor.Init(m_pDevice);
+	if (!m_nrProcessor.IsInited()) {
+		m_nrProcessor.Init(m_pDevice);
+	}
 
 	CComPtr<IDXGIDevice> pDXGIDevice;
 	hr = m_pDevice->QueryInterface(IID_PPV_ARGS(&pDXGIDevice));

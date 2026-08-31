@@ -46,6 +46,7 @@ public:
     bool Process(ID3D11DeviceContext* pCtx11, ID3D11Texture2D* pFrame);
 
     bool IsEnabled() const { return m_bEnabled && m_bInited; }
+    bool IsInited() const { return m_bInited; }
     void SetEnabled(bool b) { m_bEnabled = b; }
 
     void SetStyle(const std::string& s)  { m_style = s;  m_bDirty = true; }
@@ -58,11 +59,10 @@ public:
 
 private:
     bool CreateD3D12(ID3D11Device* pDevice11);
-    bool SetupNGX(UINT w, UINT h);
     bool SetupCompute();
     bool EnsureResources(UINT w, UINT h);
     bool EnsureInterop(ID3D11Device* dev11, ID3D11DeviceContext* pCtx11);
-    bool UpdateParams();
+    bool SpawnWorker(UINT w, UINT h, HANDLE hIn, HANDLE hOut);
 
     // D3D12
     CComPtr<ID3D12Device>             m_dev12;
@@ -76,16 +76,20 @@ private:
     // D3D11 interop (shared fence + context4)
     CComPtr<ID3D11Fence>              m_fence11;
     CComPtr<ID3D11DeviceContext4>     m_ctx4;
+    CComPtr<ID3D11Query>              m_query;   // event query: CPU-side D3D11->D3D12 sync
 
     // shared textures (D3D11 side owns, D3D12 opens)
-    CComPtr<ID3D11Texture2D>          m_in11;    // B8G8R8A8 (matches backbuffer)
+    CComPtr<ID3D11Texture2D>          m_in11;    // matches the backbuffer format
     CComPtr<ID3D11Texture2D>          m_out11;   // R8G8B8A8 (UAV-capable in D3D12)
     CComPtr<ID3D12Resource>           m_in12;
     CComPtr<ID3D12Resource>           m_out12;
+    DXGI_FORMAT                       m_frameFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
 
-    // D3D12 NR working set (RGBA16F)
-    CComPtr<ID3D12Resource>           m_nrIn;
-    CComPtr<ID3D12Resource>           m_nrOut;
+    // D3D12 NR working set (RGBA16F), owned by D3D11 shared textures for the worker
+    CComPtr<ID3D11Texture2D>          m_nrIn11;   // shared with the NR worker (input)
+    CComPtr<ID3D11Texture2D>          m_nrOut11;  // shared with the NR worker (output)
+    CComPtr<ID3D12Resource>           m_nrIn;     // opened in D3D12
+    CComPtr<ID3D12Resource>           m_nrOut;    // opened in D3D12
 
     // compute pipeline
     CComPtr<ID3D12RootSignature>      m_rs;
@@ -93,9 +97,13 @@ private:
     CComPtr<ID3D12PipelineState>      m_pso2;   // RGBA16F -> R8G8B8A8
     CComPtr<ID3D12DescriptorHeap>     m_heap;
 
-    // NGX
-    NVSDK_NGX_Parameter*             m_params = nullptr;
-    NVSDK_NGX_Handle*                m_feature = nullptr;
+    // NR worker process (NGX runs in a separate process, which is the only
+    // environment where nvngx_dlssnr.dll's Init_Ext succeeds on this machine)
+    HANDLE           m_hFrameReady = nullptr;
+    HANDLE           m_hFrameDone  = nullptr;
+    HANDLE           m_hShutdown   = nullptr;
+    PROCESS_INFORMATION m_piWorker = {};
+    bool             m_bWorkerRunning = false;
 
     // D3D11 copy-back (output R8G8B8A8 -> backbuffer B8G8R8A8)
     CComPtr<ID3D11VertexShader>       m_vsCopy;
