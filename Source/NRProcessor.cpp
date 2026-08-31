@@ -103,6 +103,25 @@ void CNRProcessor::Shutdown()
     m_bInited = false;
 }
 
+void CNRProcessor::Configure(bool enable, int style, int preset, int intensity,
+                             int tone, int structure, int skin, int mask)
+{
+    m_bEnabled = enable;
+    m_bDirty = true;
+    switch (style) {
+        case 0: m_style = "default"; break;
+        case 1: m_style = "natural"; break;
+        case 2: m_style = "cinematic"; break;
+        default: m_style = "cinematic";
+    }
+    m_preset = preset;
+    m_intensity = intensity;
+    m_tone = tone;
+    m_structure = structure;
+    m_skin = skin;
+    m_mask = mask;
+}
+
 bool CNRProcessor::CreateD3D12(ID3D11Device* pDevice11)
 {
     // Enumerate adapters and pick the RTX 5090 (like the standalone player does),

@@ -56,6 +56,8 @@ public:
     void SetStructure(int v)             { m_structure = v; m_bDirty = true; }
     void SetSkin(int v)                  { m_skin = v; m_bDirty = true; }
     void SetMask(int v)                  { m_mask = v; m_bDirty = true; }
+    void Configure(bool enable, int style, int preset, int intensity,
+                   int tone, int structure, int skin, int mask);
 
 private:
     bool CreateD3D12(ID3D11Device* pDevice11);

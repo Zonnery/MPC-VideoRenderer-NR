@@ -170,6 +170,22 @@ void CVRMainPPage::EnableControls()
 	GetDlgItem(IDC_EDIT_DISPLAYMAX).EnableWindow(m_SetsPP.bHdrLocalToneMapping);
 }
 
+void CVRMainPPage::EnableNRControls()
+{
+	BOOL en = m_SetsPP.bNREnable && IsWindows10OrGreater();
+	GetDlgItem(IDC_COMBO11).EnableWindow(en);
+	GetDlgItem(IDC_COMBO12).EnableWindow(en);
+	GetDlgItem(IDC_SLIDER3).EnableWindow(en);
+	GetDlgItem(IDC_SLIDER4).EnableWindow(en);
+	GetDlgItem(IDC_COMBO13).EnableWindow(en);
+	GetDlgItem(IDC_COMBO14).EnableWindow(en);
+	GetDlgItem(IDC_COMBO15).EnableWindow(en);
+	GetDlgItem(IDC_STATIC102).EnableWindow(en);
+	GetDlgItem(IDC_STATIC103).EnableWindow(en);
+	GetDlgItem(IDC_STATIC104).EnableWindow(en);
+	GetDlgItem(IDC_STATIC105).EnableWindow(en);
+}
+
 HRESULT CVRMainPPage::OnConnect(IUnknown *pUnk)
 {
 	if (pUnk == nullptr) return E_POINTER;
@@ -293,6 +309,68 @@ HRESULT CVRMainPPage::OnActivate()
 	ComboBox_AddStringData(m_hWnd, IDC_COMBO10, L"Hable", 3);
 	ComboBox_AddStringData(m_hWnd, IDC_COMBO10, L"Mobius", 4);
 	ComboBox_AddStringData(m_hWnd, IDC_COMBO10, L"BT2390/ST 2094-10", 5);
+
+	// DLSS 5 Neural Rendering
+	CheckDlgButton(IDC_CHECK20, m_SetsPP.bNREnable ? BST_CHECKED : BST_UNCHECKED);
+
+	SendDlgItemMessageW(IDC_COMBO11, CB_ADDSTRING, 0, (LPARAM)L"Default");
+	SendDlgItemMessageW(IDC_COMBO11, CB_ADDSTRING, 0, (LPARAM)L"Natural");
+	SendDlgItemMessageW(IDC_COMBO11, CB_ADDSTRING, 0, (LPARAM)L"Cinematic");
+	SendDlgItemMessageW(IDC_COMBO11, CB_SETCURSEL, m_SetsPP.iNRStyle, 0);
+
+	ComboBox_AddStringData(m_hWnd, IDC_COMBO12, L"1", 1);
+	ComboBox_AddStringData(m_hWnd, IDC_COMBO12, L"2", 2);
+	ComboBox_AddStringData(m_hWnd, IDC_COMBO12, L"3", 3);
+	ComboBox_AddStringData(m_hWnd, IDC_COMBO12, L"4", 4);
+	ComboBox_AddStringData(m_hWnd, IDC_COMBO12, L"5", 5);
+	ComboBox_SelectByItemData(m_hWnd, IDC_COMBO12, m_SetsPP.iNRPreset);
+
+	SendDlgItemMessageW(IDC_SLIDER3, TBM_SETRANGE, 0, MAKELONG(0, 10));
+	SendDlgItemMessageW(IDC_SLIDER3, TBM_SETPOS, 1, m_SetsPP.iNRIntensity);
+	SendDlgItemMessageW(IDC_SLIDER3, TBM_SETTIC, 0, 2);
+	SendDlgItemMessageW(IDC_SLIDER3, TBM_SETLINESIZE, 0, 1);
+	SendDlgItemMessageW(IDC_SLIDER3, TBM_SETPAGESIZE, 0, 2);
+
+	SendDlgItemMessageW(IDC_SLIDER4, TBM_SETRANGE, 0, MAKELONG(0, 10));
+	SendDlgItemMessageW(IDC_SLIDER4, TBM_SETPOS, 1, m_SetsPP.iNRTone);
+	SendDlgItemMessageW(IDC_SLIDER4, TBM_SETTIC, 0, 1);
+	SendDlgItemMessageW(IDC_SLIDER4, TBM_SETLINESIZE, 0, 1);
+	SendDlgItemMessageW(IDC_SLIDER4, TBM_SETPAGESIZE, 0, 2);
+
+	SendDlgItemMessageW(IDC_COMBO13, CB_ADDSTRING, 0, (LPARAM)L"0");
+	SendDlgItemMessageW(IDC_COMBO13, CB_ADDSTRING, 0, (LPARAM)L"1");
+	SendDlgItemMessageW(IDC_COMBO13, CB_ADDSTRING, 0, (LPARAM)L"2");
+	SendDlgItemMessageW(IDC_COMBO13, CB_ADDSTRING, 0, (LPARAM)L"3");
+	SendDlgItemMessageW(IDC_COMBO13, CB_ADDSTRING, 0, (LPARAM)L"4");
+	SendDlgItemMessageW(IDC_COMBO13, CB_ADDSTRING, 0, (LPARAM)L"5");
+	SendDlgItemMessageW(IDC_COMBO13, CB_ADDSTRING, 0, (LPARAM)L"6");
+	SendDlgItemMessageW(IDC_COMBO13, CB_ADDSTRING, 0, (LPARAM)L"7");
+	SendDlgItemMessageW(IDC_COMBO13, CB_ADDSTRING, 0, (LPARAM)L"8");
+	SendDlgItemMessageW(IDC_COMBO13, CB_ADDSTRING, 0, (LPARAM)L"9");
+	SendDlgItemMessageW(IDC_COMBO13, CB_ADDSTRING, 0, (LPARAM)L"10");
+	SendDlgItemMessageW(IDC_COMBO13, CB_SETCURSEL, m_SetsPP.iNRStructure, 0);
+
+	SendDlgItemMessageW(IDC_COMBO14, CB_ADDSTRING, 0, (LPARAM)L"Auto");
+	SendDlgItemMessageW(IDC_COMBO14, CB_ADDSTRING, 0, (LPARAM)L"0");
+	SendDlgItemMessageW(IDC_COMBO14, CB_ADDSTRING, 0, (LPARAM)L"1");
+	SendDlgItemMessageW(IDC_COMBO14, CB_ADDSTRING, 0, (LPARAM)L"2");
+	SendDlgItemMessageW(IDC_COMBO14, CB_ADDSTRING, 0, (LPARAM)L"3");
+	SendDlgItemMessageW(IDC_COMBO14, CB_ADDSTRING, 0, (LPARAM)L"4");
+	SendDlgItemMessageW(IDC_COMBO14, CB_ADDSTRING, 0, (LPARAM)L"5");
+	SendDlgItemMessageW(IDC_COMBO14, CB_ADDSTRING, 0, (LPARAM)L"6");
+	SendDlgItemMessageW(IDC_COMBO14, CB_ADDSTRING, 0, (LPARAM)L"7");
+	SendDlgItemMessageW(IDC_COMBO14, CB_ADDSTRING, 0, (LPARAM)L"8");
+	SendDlgItemMessageW(IDC_COMBO14, CB_ADDSTRING, 0, (LPARAM)L"9");
+	SendDlgItemMessageW(IDC_COMBO14, CB_ADDSTRING, 0, (LPARAM)L"10");
+	// Skin: index 0 = Auto (-1), index 1..11 = 0..10
+	SendDlgItemMessageW(IDC_COMBO14, CB_SETCURSEL, m_SetsPP.iNRSkin + 1, 0);
+
+	ComboBox_AddStringData(m_hWnd, IDC_COMBO15, L"Off", 0);
+	ComboBox_AddStringData(m_hWnd, IDC_COMBO15, L"Auto", 1);
+	ComboBox_SelectByItemData(m_hWnd, IDC_COMBO15, m_SetsPP.iNRMask);
+
+	// enable/disable NR controls based on checkbox
+	EnableNRControls();
 
 	SetControls();
 
@@ -427,12 +505,18 @@ INT_PTR CVRMainPPage::OnReceiveMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPAR
 				return (LRESULT)1;
 			}
 			if (nID == IDC_CHECK19) {
-				m_SetsPP.bVPRTXVideoHDR = IsDlgButtonChecked(IDC_CHECK19) == BST_CHECKED;
-				SetDirty();
-				return (LRESULT)1;
-			}
+					m_SetsPP.bVPRTXVideoHDR = IsDlgButtonChecked(IDC_CHECK19) == BST_CHECKED;
+					SetDirty();
+					return (LRESULT)1;
+				}
+				if (nID == IDC_CHECK20) {
+					m_SetsPP.bNREnable = IsDlgButtonChecked(IDC_CHECK20) == BST_CHECKED;
+					EnableNRControls();
+					SetDirty();
+					return (LRESULT)1;
+				}
 
-			if (nID == IDC_BUTTON1) {
+				if (nID == IDC_BUTTON1) {
 				m_SetsPP.SetDefault();
 				SetControls();
 				EnableControls();
@@ -518,48 +602,89 @@ INT_PTR CVRMainPPage::OnReceiveMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPAR
 				return (LRESULT)1;
 			}
 			if (nID == IDC_COMBO10) {
-				lValue = SendDlgItemMessageW(IDC_COMBO10, CB_GETCURSEL, 0, 0);
-				switch (lValue) {
-					case 0:
-						m_SetsPP.bHdrPassthrough = false;
-						m_SetsPP.bHdrLocalToneMapping = false;
-						break;
-					case 1:
-						m_SetsPP.bHdrPassthrough = true;
-						m_SetsPP.bHdrLocalToneMapping = false;
-						break;
-					case 2:
-						m_SetsPP.bHdrPassthrough = false;
-						m_SetsPP.bHdrLocalToneMapping = true;
-						m_SetsPP.iHdrLocalToneMappingType = 1;
-						break;
-					case 3:
-						m_SetsPP.bHdrPassthrough = false;
-						m_SetsPP.bHdrLocalToneMapping = true;
-						m_SetsPP.iHdrLocalToneMappingType = 2;
-						break;
-					case 4:
-						m_SetsPP.bHdrPassthrough = false;
-						m_SetsPP.bHdrLocalToneMapping = true;
-						m_SetsPP.iHdrLocalToneMappingType = 3;
-						break;
-					case 5:
-						m_SetsPP.bHdrPassthrough = false;
-						m_SetsPP.bHdrLocalToneMapping = true;
-						m_SetsPP.iHdrLocalToneMappingType = 4;
-						break;
-					case 6:
-						m_SetsPP.bHdrPassthrough = false;
-						m_SetsPP.bHdrLocalToneMapping = true;
-						m_SetsPP.iHdrLocalToneMappingType = 5;
-						break;
-					default:
-						break;
+					lValue = SendDlgItemMessageW(IDC_COMBO10, CB_GETCURSEL, 0, 0);
+					switch (lValue) {
+						case 0:
+							m_SetsPP.bHdrPassthrough = false;
+							m_SetsPP.bHdrLocalToneMapping = false;
+							break;
+						case 1:
+							m_SetsPP.bHdrPassthrough = true;
+							m_SetsPP.bHdrLocalToneMapping = false;
+							break;
+						case 2:
+							m_SetsPP.bHdrPassthrough = false;
+							m_SetsPP.bHdrLocalToneMapping = true;
+							m_SetsPP.iHdrLocalToneMappingType = 1;
+							break;
+						case 3:
+							m_SetsPP.bHdrPassthrough = false;
+							m_SetsPP.bHdrLocalToneMapping = true;
+							m_SetsPP.iHdrLocalToneMappingType = 2;
+							break;
+						case 4:
+							m_SetsPP.bHdrPassthrough = false;
+							m_SetsPP.bHdrLocalToneMapping = true;
+							m_SetsPP.iHdrLocalToneMappingType = 3;
+							break;
+						case 5:
+							m_SetsPP.bHdrPassthrough = false;
+							m_SetsPP.bHdrLocalToneMapping = true;
+							m_SetsPP.iHdrLocalToneMappingType = 4;
+							break;
+						case 6:
+							m_SetsPP.bHdrPassthrough = false;
+							m_SetsPP.bHdrLocalToneMapping = true;
+							m_SetsPP.iHdrLocalToneMappingType = 5;
+							break;
+						default:
+							break;
+					}
+					SetDirty();
+					EnableControls();
+					return (LRESULT)1;
 				}
-				SetDirty();
-				EnableControls();
-				return (LRESULT)1;
-			}
+				if (nID == IDC_COMBO11) {
+					lValue = SendDlgItemMessageW(IDC_COMBO11, CB_GETCURSEL, 0, 0);
+					if (lValue != m_SetsPP.iNRStyle) {
+						m_SetsPP.iNRStyle = lValue;
+						SetDirty();
+					}
+					return (LRESULT)1;
+				}
+				if (nID == IDC_COMBO12) {
+					lValue = ComboBox_GetCurItemData(m_hWnd, IDC_COMBO12);
+					if (lValue != m_SetsPP.iNRPreset) {
+						m_SetsPP.iNRPreset = lValue;
+						SetDirty();
+					}
+					return (LRESULT)1;
+				}
+				if (nID == IDC_COMBO13) {
+					lValue = SendDlgItemMessageW(IDC_COMBO13, CB_GETCURSEL, 0, 0);
+					if (lValue != m_SetsPP.iNRStructure) {
+						m_SetsPP.iNRStructure = lValue;
+						SetDirty();
+					}
+					return (LRESULT)1;
+				}
+				if (nID == IDC_COMBO14) {
+					lValue = SendDlgItemMessageW(IDC_COMBO14, CB_GETCURSEL, 0, 0);
+					int newSkin = lValue - 1; // index 0 = Auto (-1), 1..11 = 0..10
+					if (newSkin != m_SetsPP.iNRSkin) {
+						m_SetsPP.iNRSkin = newSkin;
+						SetDirty();
+					}
+					return (LRESULT)1;
+				}
+				if (nID == IDC_COMBO15) {
+					lValue = ComboBox_GetCurItemData(m_hWnd, IDC_COMBO15);
+					if (lValue != m_SetsPP.iNRMask) {
+						m_SetsPP.iNRMask = lValue;
+						SetDirty();
+					}
+					return (LRESULT)1;
+				}
 		}
 		if (action == EN_CHANGE) {
 			if (nID == IDC_EDIT_DISPLAYMAX) {
@@ -577,22 +702,38 @@ INT_PTR CVRMainPPage::OnReceiveMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPAR
 			return (LRESULT)1;
 		}
 		if ((HWND)lParam == GetDlgItem(IDC_SLIDER2)) {
-			LRESULT lValue = SendDlgItemMessageW(IDC_SLIDER2, TBM_GETPOS, 0, 0);
-			lValue *= SDR_NITS_STEP;
-			if (lValue != m_SetsPP.iSDRDisplayNits) {
-				m_SetsPP.iSDRDisplayNits = lValue;
-				GetDlgItem(IDC_EDIT1).SetWindowTextW(std::to_wstring(m_SetsPP.iSDRDisplayNits).c_str());
-				SetDirty();
-				{
-					// apply only SDRDisplayNits
-					Settings_t sets;
-					m_pVideoRenderer->GetSettings(sets);
-					sets.iSDRDisplayNits = m_SetsPP.iSDRDisplayNits;
-					m_pVideoRenderer->SetSettings(sets);
+				LRESULT lValue = SendDlgItemMessageW(IDC_SLIDER2, TBM_GETPOS, 0, 0);
+				lValue *= SDR_NITS_STEP;
+				if (lValue != m_SetsPP.iSDRDisplayNits) {
+					m_SetsPP.iSDRDisplayNits = lValue;
+					GetDlgItem(IDC_EDIT1).SetWindowTextW(std::to_wstring(m_SetsPP.iSDRDisplayNits).c_str());
+					SetDirty();
+					{
+						// apply only SDRDisplayNits
+						Settings_t sets;
+						m_pVideoRenderer->GetSettings(sets);
+						sets.iSDRDisplayNits = m_SetsPP.iSDRDisplayNits;
+						m_pVideoRenderer->SetSettings(sets);
+					}
 				}
+				return (LRESULT)1;
 			}
-			return (LRESULT)1;
-		}
+			if ((HWND)lParam == GetDlgItem(IDC_SLIDER3)) {
+				LRESULT lValue = SendDlgItemMessageW(IDC_SLIDER3, TBM_GETPOS, 0, 0);
+				if (lValue != m_SetsPP.iNRIntensity) {
+					m_SetsPP.iNRIntensity = lValue;
+					SetDirty();
+				}
+				return (LRESULT)1;
+			}
+			if ((HWND)lParam == GetDlgItem(IDC_SLIDER4)) {
+				LRESULT lValue = SendDlgItemMessageW(IDC_SLIDER4, TBM_GETPOS, 0, 0);
+				if (lValue != m_SetsPP.iNRTone) {
+					m_SetsPP.iNRTone = lValue;
+					SetDirty();
+				}
+				return (LRESULT)1;
+			}
 	}
 
 	// Let the parent class handle the message.

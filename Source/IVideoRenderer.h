@@ -133,6 +133,16 @@ struct Settings_t {
 	int  iHdrLocalToneMappingType;
 	int iHdrDisplayMaxNits;
 
+	// DLSS 5 Neural Rendering
+	bool bNREnable;
+	int  iNRStyle;       // 0=default, 1=natural, 2=cinematic
+	int  iNRPreset;      // 1-5
+	int  iNRIntensity;   // 0-10
+	int  iNRTone;        // 0-10
+	int  iNRStructure;   // 0-10
+	int  iNRSkin;        // -1=auto, 0-10
+	int  iNRMask;        // 0=off, 1=auto
+
 	Settings_t() {
 		SetDefault();
 	}
@@ -182,6 +192,14 @@ struct Settings_t {
 		bConvertToSdr                   = true;
 		iHdrOsdBrightness               = 0;
 		iSDRDisplayNits                 = SDR_NITS_DEF;
+		bNREnable                       = false;
+		iNRStyle                        = 2;    // cinematic
+		iNRPreset                       = 3;
+		iNRIntensity                    = 2;
+		iNRTone                         = 1;
+		iNRStructure                    = 1;
+		iNRSkin                         = -1;   // auto
+		iNRMask                         = 0;
 	}
 };
 

@@ -410,6 +410,10 @@ CDX11VideoProcessor::CDX11VideoProcessor(CMpcVideoRenderer* pFilter, const Setti
 	m_bConvertToSdr        = config.bConvertToSdr;
 	m_iSDRDisplayNits      = config.iSDRDisplayNits;
 
+	m_nrProcessor.Configure(config.bNREnable, config.iNRStyle, config.iNRPreset,
+		config.iNRIntensity, config.iNRTone, config.iNRStructure,
+		config.iNRSkin, config.iNRMask);
+
 	m_nCurrentAdapter = -1;
 
 	hr = CreateDXGIFactory1(IID_IDXGIFactory1, (void**)&m_pDXGIFactory1);
@@ -3853,6 +3857,11 @@ void CDX11VideoProcessor::Configure(const Settings_t& config)
 	m_bVBlankBeforePresent = config.bVBlankBeforePresent;
 	m_bAdjustPresentTime   = config.bAdjustPresentTime;
 	m_bDeintBlend          = config.bDeintBlend;
+
+	// DLSS 5 Neural Rendering settings
+	m_nrProcessor.Configure(config.bNREnable, config.iNRStyle, config.iNRPreset,
+		config.iNRIntensity, config.iNRTone, config.iNRStructure,
+		config.iNRSkin, config.iNRMask);
 
 	// checking what needs to be changed
 

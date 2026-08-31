@@ -43,6 +43,7 @@ public:
 private:
 	void SetControls();
 	void EnableControls();
+	void EnableNRControls();
 
 	HRESULT OnConnect(IUnknown* pUnknown) override;
 	HRESULT OnDisconnect() override;

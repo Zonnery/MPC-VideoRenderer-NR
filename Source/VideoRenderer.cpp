@@ -68,6 +68,14 @@
 #define OPT_ConvertToSdr                   L"ConvertToSdr"
 #define OPT_UseD3DFullscreen               L"UseD3DFullscreen"
 #define OPT_DisplayNits                    L"DisplayNits"
+#define OPT_NREnable                       L"NREnable"
+#define OPT_NRStyle                        L"NRStyle"
+#define OPT_NRPreset                       L"NRPreset"
+#define OPT_NRIntensity                    L"NRIntensity"
+#define OPT_NRTone                         L"NRTone"
+#define OPT_NRStructure                    L"NRStructure"
+#define OPT_NRSkin                         L"NRSkin"
+#define OPT_NRMask                         L"NRMask"
 
 static std::atomic_int g_nInstance = 0;
 static const wchar_t g_szClassName[] = L"VRWindow";
@@ -271,6 +279,30 @@ CMpcVideoRenderer::CMpcVideoRenderer(LPUNKNOWN pUnk, HRESULT* phr)
 		}
 		if (ERROR_SUCCESS == key.QueryDWORDValue(OPT_DisplayNits, dw)) {
 			m_Sets.iSDRDisplayNits = discard<int>(dw, SDR_NITS_DEF, SDR_NITS_MIN, SDR_NITS_MAX);
+		}
+		if (ERROR_SUCCESS == key.QueryDWORDValue(OPT_NREnable, dw)) {
+			m_Sets.bNREnable = !!dw;
+		}
+		if (ERROR_SUCCESS == key.QueryDWORDValue(OPT_NRStyle, dw)) {
+			m_Sets.iNRStyle = discard<int>(dw, 2, 0, 2);
+		}
+		if (ERROR_SUCCESS == key.QueryDWORDValue(OPT_NRPreset, dw)) {
+			m_Sets.iNRPreset = discard<int>(dw, 3, 1, 5);
+		}
+		if (ERROR_SUCCESS == key.QueryDWORDValue(OPT_NRIntensity, dw)) {
+			m_Sets.iNRIntensity = discard<int>(dw, 2, 0, 10);
+		}
+		if (ERROR_SUCCESS == key.QueryDWORDValue(OPT_NRTone, dw)) {
+			m_Sets.iNRTone = discard<int>(dw, 1, 0, 10);
+		}
+		if (ERROR_SUCCESS == key.QueryDWORDValue(OPT_NRStructure, dw)) {
+			m_Sets.iNRStructure = discard<int>(dw, 1, 0, 10);
+		}
+		if (ERROR_SUCCESS == key.QueryDWORDValue(OPT_NRSkin, dw)) {
+			m_Sets.iNRSkin = discard<int>(dw, -1, -1, 10);
+		}
+		if (ERROR_SUCCESS == key.QueryDWORDValue(OPT_NRMask, dw)) {
+			m_Sets.iNRMask = discard<int>(dw, 0, 0, 1);
 		}
 	}
 
@@ -1309,6 +1341,14 @@ STDMETHODIMP CMpcVideoRenderer::SaveSettings()
 		key.SetDWORDValue(OPT_HdrOsdBrightness,    m_Sets.iHdrOsdBrightness);
 		key.SetDWORDValue(OPT_ConvertToSdr,        m_Sets.bConvertToSdr);
 		key.SetDWORDValue(OPT_DisplayNits,         m_Sets.iSDRDisplayNits);
+		key.SetDWORDValue(OPT_NREnable,            m_Sets.bNREnable);
+		key.SetDWORDValue(OPT_NRStyle,             m_Sets.iNRStyle);
+		key.SetDWORDValue(OPT_NRPreset,            m_Sets.iNRPreset);
+		key.SetDWORDValue(OPT_NRIntensity,         m_Sets.iNRIntensity);
+		key.SetDWORDValue(OPT_NRTone,              m_Sets.iNRTone);
+		key.SetDWORDValue(OPT_NRStructure,         m_Sets.iNRStructure);
+		key.SetDWORDValue(OPT_NRSkin,              m_Sets.iNRSkin);
+		key.SetDWORDValue(OPT_NRMask,              m_Sets.iNRMask);
 	}
 
 	return S_OK;
